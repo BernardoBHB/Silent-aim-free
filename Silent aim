@@ -1,0 +1,244 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local camera = workspace.CurrentCamera
+
+-- A "Válvula" global que as armas vão ler
+_G.AlvoBHB = nil 
+local silentAimAtivo = false
+local tamanhoFOV = 200
+
+-- ==========================================
+-- INTERFACE DO BHB HUB
+-- ==========================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BHB_Hub_PvP"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Fundo do Painel
+local painel = Instance.new("Frame")
+painel.Size = UDim2.new(0, 260, 0, 220)
+painel.Position = UDim2.new(0.5, -130, 0.5, -110)
+painel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+painel.BorderSizePixel = 0
+painel.Visible = false
+painel.Active = true
+painel.Draggable = true
+painel.Parent = screenGui
+
+local cornerPainel = Instance.new("UICorner")
+cornerPainel.CornerRadius = UDim.new(0, 10)
+cornerPainel.Parent = painel
+
+-- Título
+local titulo = Instance.new("TextLabel")
+titulo.Size = UDim2.new(1, 0, 0, 40)
+titulo.Text = "BHB HUB - ADMIN"
+titulo.Font = Enum.Font.GothamBlack
+titulo.TextSize = 18
+titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
+titulo.BackgroundColor3 = Color3.fromRGB(80, 0, 255)
+titulo.Parent = painel
+
+local cornerTitulo = Instance.new("UICorner")
+cornerTitulo.CornerRadius = UDim.new(0, 10)
+cornerTitulo.Parent = titulo
+
+-- ==========================================
+-- A VÁLVULA (BOTÃO LIGA/DESLIGA)
+-- ==========================================
+local btnToggle = Instance.new("TextButton")
+btnToggle.Size = UDim2.new(0, 220, 0, 45)
+btnToggle.Position = UDim2.new(0, 20, 0, 60)
+btnToggle.Text = "SILENT AIM: DESLIGADO"
+btnToggle.BackgroundColor3 = Color3.fromRGB(200, 40, 40) -- Vermelho por padrão
+btnToggle.TextColor3 = Color3.new(1, 1, 1)
+btnToggle.Font = Enum.Font.GothamBold
+btnToggle.TextSize = 14
+btnToggle.Parent = painel
+
+local cornerToggle = Instance.new("UICorner")
+cornerToggle.CornerRadius = UDim.new(0, 8)
+cornerToggle.Parent = btnToggle
+
+-- Botões de FOV
+local btnAumentar = Instance.new("TextButton")
+btnAumentar.Size = UDim2.new(0, 105, 0, 35)
+btnAumentar.Position = UDim2.new(0, 20, 0, 120)
+btnAumentar.Text = "FOV +50"
+btnAumentar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+btnAumentar.TextColor3 = Color3.new(1, 1, 1)
+btnAumentar.Font = Enum.Font.GothamSemibold
+btnAumentar.Parent = painel
+
+local btnDiminuir = Instance.new("TextButton")
+btnDiminuir.Size = UDim2.new(0, 105, 0, 35)
+btnDiminuir.Position = UDim2.new(0, 135, 0, 120)
+btnDiminuir.Text = "FOV -50"
+btnDiminuir.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+btnDiminuir.TextColor3 = Color3.new(1, 1, 1)
+btnDiminuir.Font = Enum.Font.GothamSemibold
+btnDiminuir.Parent = painel
+
+-- ==========================================
+-- CÍRCULO DE MIRA NA TELA
+-- ==========================================
+local fovCircle = Instance.new("Frame")
+fovCircle.Size = UDim2.new(0, tamanhoFOV, 0, tamanhoFOV)
+fovCircle.Position = UDim2.new(0.5, -(tamanhoFOV/2), 0.5, -(tamanhoFOV/2))
+fovCircle.BackgroundTransparency = 1
+fovCircle.Visible = false
+fovCircle.Parent = screenGui
+
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(80, 0, 255) -- Cor do círculo combinando com o Hub
+uiStroke.Thickness = 2
+uiStroke.Parent = fovCircle
+
+local fovCorner = Instance.new("UICorner")
+fovCorner.CornerRadius = UDim.new(1, 0)
+fovCorner.Parent = fovCircle
+
+-- ==========================================
+-- LÓGICA DE ABRIR/FECHAR E BOTÕES
+-- ==========================================
+player.Chatted:Connect(function(msg)
+	if string.lower(msg) == "/panel" then
+		painel.Visible = not painel.Visible
+		fovCircle.Visible = (painel.Visible and silentAimAtivo)
+	end
+end)
+
+-- Sistema da Válvula
+btnToggle.MouseButton1Click:Connect(function()
+	silentAimAtivo = not silentAimAtivo
+	
+	if silentAimAtivo then
+		-- LIGADO
+		btnToggle.Text = "SILENT AIM: LIGADO"
+		btnToggle.BackgroundColor3 = Color3.fromRGB(40, 200, 80) -- Fica verde
+		fovCircle.Visible = painel.Visible
+	else
+		-- DESLIGADO
+		btnToggle.Text = "SILENT AIM: DESLIGADO"
+		btnToggle.BackgroundColor3 = Color3.fromRGB(200, 40, 40) -- Fica vermelho
+		fovCircle.Visible = false
+		_G.AlvoBHB = nil -- Limpa o alvo imediatamente
+	end
+end)
+
+local function atualizarTamanhoFOV()
+	fovCircle.Size = UDim2.new(0, tamanhoFOV, 0, tamanhoFOV)
+	fovCircle.Position = UDim2.new(0.5, -(tamanhoFOV/2), 0.5, -(tamanhoFOV/2))
+end
+
+btnAumentar.MouseButton1Click:Connect(function()
+	tamanhoFOV = math.clamp(tamanhoFOV + 50, 50, 800)
+	atualizarTamanhoFOV()
+end)
+
+btnDiminuir.MouseButton1Click:Connect(function()
+	tamanhoFOV = math.clamp(tamanhoFOV - 50, 50, 800)
+	atualizarTamanhoFOV()
+end)
+
+-- ==========================================
+-- MATEMÁTICA DE RASTREAMENTO
+-- ==========================================
+local function pegarJogadorNoFOV()
+	local alvoMaisProximo = nil
+	local menorDistancia = tamanhoFOV / 2 
+
+	for _, inimigo in pairs(Players:GetPlayers()) do
+		if inimigo ~= player and inimigo.Character and inimigo.Character:FindFirstChild("HumanoidRootPart") then
+			local humanoid = inimigo.Character:FindFirstChild("Humanoid")
+			if humanoid and humanoid.Health > 0 then
+				
+				local pos3D = inimigo.Character.HumanoidRootPart.Position
+				local posTela, naTela = camera:WorldToViewportPoint(pos3D)
+				
+				if naTela then
+					local posMouse = Vector2.new(mouse.X, mouse.Y)
+					local posInimigo2D = Vector2.new(posTela.X, posTela.Y)
+					local distancia = (posMouse - posInimigo2D).Magnitude
+					
+					if distancia < menorDistancia then
+						menorDistancia = distancia
+						alvoMaisProximo = inimigo.Character.HumanoidRootPart
+					end
+				end
+			end
+		end
+	end
+	return alvoMaisProximo
+end
+
+RunService.RenderStepped:Connect(function()
+	-- Se a válvula estiver ligada, ele caça os alvos. Se não, não faz nada.
+	if silentAimAtivo then
+		_G.AlvoBHB = pegarJogadorNoFOV()
+	end
+end)
+
+-- ==========================================
+-- SISTEMA DE MIRA PARA ARMAS (FUNCIONALIDADE PRINCIPAL)
+-- ==========================================
+-- Esta função deve ser chamada quando sua arma for atirar
+-- Exemplo de uso: local posicaoAlvo = getTargetPosition()
+function getTargetPosition()
+	if silentAimAtivo and _G.AlvoBHB ~= nil then
+		-- Mira no peito do alvo (posição ligeiramente acima do HumanoidRootPart)
+		return _G.AlvoBHB.Position + Vector3.new(0, 1.5, 0)
+	else
+		-- Mira normal no mouse
+		return mouse.Hit.Position
+	end
+end
+
+-- ==========================================
+-- EXEMPLO DE USO EM UMA ARMA
+-- ==========================================
+-- Aqui está um exemplo de como você usaria isso no seu script de arma:
+--[[
+local tool = script.Parent -- ou a ferramenta que você está usando
+
+tool.Activated:Connect(function()
+	-- Pega a posição alvo (com silent aim se estiver ativo)
+	local posicaoAlvo = getTargetPosition()
+	
+	-- Cria o projétil ou faz o raycast na posicaoAlvo
+	-- Exemplo de raycast:
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+	raycastParams.FilterDescendantsInstances = {player.Character}
+	
+	local raycastResult = workspace:Raycast(
+		player.Character.HumanoidRootPart.Position,
+		(posicaoAlvo - player.Character.HumanoidRootPart.Position).Unit * 500,
+		raycastParams
+	)
+	
+	if raycastResult then
+		local hit = raycastResult.Instance
+		local position = raycastResult.Position
+		
+		-- Aqui você adiciona a lógica de dano ou efeito
+		print("Acertou: "..hit.Name)
+	end
+end)
+]]
+
+-- Para testar sem uma arma, você pode usar este comando no chat:
+player.Chatted:Connect(function(msg)
+	if string.lower(msg) == "/testemira" then
+		local alvo = getTargetPosition()
+		if silentAimAtivo and _G.AlvoBHB then
+			print("Silent Aim ativo! Mira no: ".._G.AlvoBHB.Parent.Name)
+			print("Posição da mira: "..tostring(alvo))
+		else
+			print("Mira normal no mouse: "..tostring(alvo))
+		end
+	end
+end)
