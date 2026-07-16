@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
@@ -8,6 +9,7 @@ local camera = workspace.CurrentCamera
 _G.AlvoBHB = nil 
 local silentAimAtivo = false
 local tamanhoFOV = 200
+local painelAberto = false
 
 -- ==========================================
 -- INTERFACE DO BHB HUB
@@ -102,12 +104,15 @@ fovCorner.CornerRadius = UDim.new(1, 0)
 fovCorner.Parent = fovCircle
 
 -- ==========================================
--- LÓGICA DE ABRIR/FECHAR E BOTÕES
+-- LÓGICA DE ABRIR/FECHAR COM TECLA L
 -- ==========================================
-player.Chatted:Connect(function(msg)
-	if string.lower(msg) == "/panel" then
-		painel.Visible = not painel.Visible
-		fovCircle.Visible = (painel.Visible and silentAimAtivo)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	
+	if input.KeyCode == Enum.KeyCode.L then
+		painelAberto = not painelAberto
+		painel.Visible = painelAberto
+		fovCircle.Visible = (painelAberto and silentAimAtivo)
 	end
 end)
 
@@ -119,7 +124,7 @@ btnToggle.MouseButton1Click:Connect(function()
 		-- LIGADO
 		btnToggle.Text = "SILENT AIM: LIGADO"
 		btnToggle.BackgroundColor3 = Color3.fromRGB(40, 200, 80) -- Fica verde
-		fovCircle.Visible = painel.Visible
+		fovCircle.Visible = painelAberto
 	else
 		-- DESLIGADO
 		btnToggle.Text = "SILENT AIM: DESLIGADO"
