@@ -1,19 +1,20 @@
 -- ==========================================
--- ADMIN HUB (VERSÃO DE TESTE - SEM RESTRIÇÃO)
+-- ADMIN HUB (TUDO EM UM SCRIPT - CORRIGIDO)
 -- ==========================================
 
--- Onde seus itens (Tools) ficam guardados no jogo
 local itemStorage = game:GetService("ServerStorage")
 
-game.Players.PlayerAdded:Connect(function(player)
-	-- Removi a verificação de nick. Todo mundo que entrar recebe o painel!
+-- Essa é a função que cria a Hub (a interface inteira)
+local function criarHub(player)
+	-- Evita criar duas vezes se o jogador já tiver a Hub
+	if player:WaitForChild("PlayerGui"):FindFirstChild("AdminHub") then return end
 
 	-- ==========================================
 	-- CRIAÇÃO DA INTERFACE (GUI)
 	-- ==========================================
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "AdminHub"
-	screenGui.ResetOnSpawn = false -- Não some quando você morre
+	screenGui.ResetOnSpawn = false 
 
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(0, 300, 0, 160)
@@ -21,7 +22,7 @@ game.Players.PlayerAdded:Connect(function(player)
 	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	frame.BorderSizePixel = 0
 	frame.Active = true
-	frame.Draggable = true -- Permite arrastar o painel pela tela
+	frame.Draggable = true 
 	frame.Parent = screenGui
 
 	local uiCorner = Instance.new("UICorner")
@@ -67,22 +68,20 @@ game.Players.PlayerAdded:Connect(function(player)
 	btnCorner.Parent = giveBtn
 
 	-- ==========================================
-	-- LÓGICA DE FUNCIONAMENTO
+	-- LÓGICA DO BOTÃO
 	-- ==========================================
 	giveBtn.MouseButton1Click:Connect(function()
 		local itemName = textBox.Text
 		if itemName == "" then return end
 
-		-- Procura o item pelo nome no ServerStorage
 		local item = itemStorage:FindFirstChild(itemName)
 		
 		if item and item:IsA("Tool") then
-			-- Verifica se você já não tem o item na mochila
-			if not player.Backpack:FindFirstChild(itemName) then
+			-- Verifica se já não tem na mochila ou equipado na mão
+			if not player.Backpack:FindFirstChild(itemName) and not player.Character:FindFirstChild(itemName) then
 				local clone = item:Clone()
 				clone.Parent = player.Backpack
 				
-				-- Feedback visual no botão
 				giveBtn.Text = "Item Entregue!"
 				giveBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
 				task.wait(1)
@@ -98,6 +97,17 @@ game.Players.PlayerAdded:Connect(function(player)
 		end
 	end)
 
-	-- Coloca a interface na tela do jogador
 	screenGui.Parent = player:WaitForChild("PlayerGui")
-end)
+end
+
+-- ==========================================
+-- INICIALIZAÇÃO
+-- ==========================================
+
+-- 1. Cria a Hub para quem JÁ ESTÁ no jogo (Resolve o bug de testar no Studio)
+for _, player in pairs(game.Players:GetPlayers()) do
+	criarHub(player)
+end
+
+-- 2. Cria a Hub para quem ENTRAR no jogo depois
+game.Players.PlayerAdded:Connect(criarHub)
